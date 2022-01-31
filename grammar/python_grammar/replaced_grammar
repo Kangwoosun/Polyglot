@@ -1,0 +1,730 @@
+file:
+[statements] ENDMARKER
+---
+interactive:
+statement_newline
+---
+eval:
+expressions NEWLINE* ENDMARKER
+---
+func_type:
+OP_LP [type_expressions] OP_RP PTR_OP expression NEWLINE* ENDMARKER
+---
+fstring:
+star_expressions
+---
+type_expressions:
+OP_COMMA.expression+ OP_COMMA OP_STAR expression OP_COMMA '**' expression
+OP_COMMA.expression+ OP_COMMA OP_STAR expression
+OP_COMMA.expression+ OP_COMMA '**' expression
+OP_STAR expression OP_COMMA '**' expression
+OP_STAR expression
+'**' expression
+OP_COMMA.expression+
+---
+statements:
+statement+
+---
+statement:
+compound_stmt
+simple_stmts
+---
+statement_newline:
+compound_stmt NEWLINE
+simple_stmts
+NEWLINE
+ENDMARKER
+---
+simple_stmts:
+simple_stmt !OP_SEMI NEWLINE  # Not needed, there for speedup
+OP_SEMI.simple_stmt+ [OP_SEMI] NEWLINE
+---
+simple_stmt:
+assignment
+star_expressions
+return_stmt
+import_stmt
+raise_stmt
+PASS
+del_stmt
+yield_stmt
+assert_stmt
+BREAK
+CONTINUE
+global_stmt
+nonlocal_stmt
+---
+compound_stmt:
+function_def
+if_stmt
+class_def
+with_stmt
+for_stmt
+try_stmt
+while_stmt
+match_stmt
+---
+assignment:
+NAME OP_COLON expression [OP_EQUAL annotated_rhs ]
+(OP_LP single_target OP_RP | single_subscript_attribute_target) OP_COLON expression [OP_EQUAL annotated_rhs ]
+(star_targets OP_EQUAL )+ (yield_expr | star_expressions) !OP_EQUAL [TYPE_COMMENT]
+single_target augassign ~ (yield_expr | star_expressions)
+---
+augassign:
+ADD_ASSIGN
+SUB_ASSIGN
+MUL_ASSIGN
+'@='
+DIV_ASSIGN
+MOD_ASSIGN
+AND_ASSIGN
+OR_ASSIGN
+XOR_ASSIGN
+LEFT_ASSIGN
+RIGHT_ASSIGN
+'**='
+'//='
+---
+global_stmt:
+'global' OP_COMMA.NAME+
+---
+nonlocal_stmt:
+'nonlocal' OP_COMMA.NAME+
+---
+yield_stmt:
+yield_expr
+---
+assert_stmt:
+'assert' expression [OP_COMMA expression ]
+---
+del_stmt:
+'del' del_targets &(OP_SEMI | NEWLINE)
+---
+import_stmt:
+import_name | import_from
+---
+import_name:
+'import' dotted_as_names
+---
+import_from:
+FROM (OP_DOT | ELLIPSIS)* dotted_name 'import' import_from_targets
+FROM (OP_DOT | ELLIPSIS)+ 'import' import_from_targets
+---
+import_from_targets:
+OP_LP import_from_as_names [OP_COMMA] OP_RP
+import_from_as_names !OP_COMMA
+OP_STAR
+---
+import_from_as_names:
+OP_COMMA.import_from_as_name+
+---
+import_from_as_name:
+NAME ['as' NAME ]
+---
+dotted_as_names:
+OP_COMMA.dotted_as_name+
+---
+dotted_as_name:
+dotted_name ['as' NAME ]
+---
+dotted_name:
+dotted_name OP_DOT NAME
+NAME
+---
+if_stmt:
+IF named_expression OP_COLON block elif_stmt
+IF named_expression OP_COLON block [else_block]
+---
+elif_stmt:
+'elif' named_expression OP_COLON block elif_stmt
+'elif' named_expression OP_COLON block [else_block]
+---
+else_block:
+ELSE OP_COLON block
+---
+while_stmt:
+WHILE named_expression OP_COLON block [else_block]
+---
+for_stmt:
+FOR star_targets IN ~ star_expressions OP_COLON [TYPE_COMMENT] block [else_block]
+ASYNC FOR star_targets IN ~ star_expressions OP_COLON [TYPE_COMMENT] block [else_block]
+---
+with_stmt:
+'with' OP_LP OP_COMMA.with_item+ OP_COMMA? OP_RP OP_COLON block
+'with' OP_COMMA.with_item+ OP_COLON [TYPE_COMMENT] block
+ASYNC 'with' OP_LP OP_COMMA.with_item+ OP_COMMA? OP_RP OP_COLON block
+ASYNC 'with' OP_COMMA.with_item+ OP_COLON [TYPE_COMMENT] block
+---
+with_item:
+expression 'as' star_target &(OP_COMMA | OP_RP | OP_COLON)
+expression
+---
+try_stmt:
+'try' OP_COLON block finally_block
+'try' OP_COLON block except_block+ [else_block] [finally_block]
+---
+except_block:
+'except' expression ['as' NAME ] OP_COLON block
+'except' OP_COLON block
+---
+finally_block:
+'finally' OP_COLON block
+---
+match_stmt:
+"match" subject_expr OP_COLON NEWLINE INDENT case_block+ DEDENT
+---
+subject_expr:
+star_named_expression OP_COMMA star_named_expressions?
+named_expression
+---
+case_block:
+"case" patterns guard? OP_COLON block
+---
+guard:
+IF named_expression
+---
+patterns:
+open_sequence_pattern
+pattern
+---
+pattern:
+as_pattern
+or_pattern
+---
+as_pattern:
+or_pattern 'as' pattern_capture_target
+---
+or_pattern:
+OP_BITOR.closed_pattern+
+---
+closed_pattern:
+literal_pattern
+capture_pattern
+wildcard_pattern
+value_pattern
+group_pattern
+sequence_pattern
+mapping_pattern
+class_pattern
+---
+literal_pattern:
+signed_number !(OP_ADD | OP_SUB)
+complex_number
+strings
+NONE
+TRUE
+FALSE
+---
+literal_expr:
+signed_number !(OP_ADD | OP_SUB)
+complex_number
+strings
+NONE
+TRUE
+FALSE
+---
+complex_number:
+signed_real_number OP_ADD imaginary_number
+signed_real_number OP_SUB imaginary_number 
+---
+signed_number:
+NUMBER
+OP_SUB NUMBER
+---
+signed_real_number:
+real_number
+OP_SUB real_number
+---
+real_number:
+NUMBER
+---
+imaginary_number:
+NUMBER
+---
+capture_pattern:
+pattern_capture_target
+---
+pattern_capture_target:
+!"_" NAME !(OP_DOT | OP_LP | OP_EQUAL)
+---
+wildcard_pattern:
+"_"
+---
+value_pattern:
+attr !(OP_DOT | OP_LP | OP_EQUAL)
+---
+attr:
+name_or_attr OP_DOT NAME
+---
+name_or_attr:
+attr
+NAME
+---
+group_pattern:
+OP_LP pattern OP_RP
+---
+sequence_pattern:
+OP_LBRACKET maybe_sequence_pattern? OP_RBRACKET
+OP_LP open_sequence_pattern? OP_RP
+---
+open_sequence_pattern:
+maybe_star_pattern OP_COMMA maybe_sequence_pattern?
+---
+maybe_sequence_pattern:
+OP_COMMA.maybe_star_pattern+ OP_COMMA?
+---
+maybe_star_pattern:
+star_pattern
+pattern
+---
+star_pattern:
+OP_STAR pattern_capture_target
+OP_STAR wildcard_pattern
+---
+mapping_pattern:
+OP_LBRACE OP_RBRACE
+OP_LBRACE double_star_pattern OP_COMMA? OP_RBRACE
+OP_LBRACE items_pattern OP_COMMA double_star_pattern OP_COMMA? OP_RBRACE
+OP_LBRACE items_pattern OP_COMMA? OP_RBRACE
+---
+items_pattern:
+OP_COMMA.key_value_pattern+
+---
+key_value_pattern:
+(literal_expr | attr) OP_COLON pattern
+---
+double_star_pattern:
+'**' pattern_capture_target
+---
+class_pattern:
+name_or_attr OP_LP OP_RP
+name_or_attr OP_LP positional_patterns OP_COMMA? OP_RP
+name_or_attr OP_LP keyword_patterns OP_COMMA? OP_RP
+name_or_attr OP_LP positional_patterns OP_COMMA keyword_patterns OP_COMMA? OP_RP
+---
+positional_patterns:
+OP_COMMA.pattern+
+---
+keyword_patterns:
+OP_COMMA.keyword_pattern+
+---
+keyword_pattern:
+NAME OP_EQUAL pattern
+---
+return_stmt:
+RETURN [star_expressions]
+---
+raise_stmt:
+'raise' expression [FROM expression ]
+'raise'
+---
+function_def:
+decorators function_def_raw
+function_def_raw
+---
+function_def_raw:
+DEF NAME OP_LP [params] OP_RP [PTR_OP expression ] OP_COLON [func_type_comment] block
+ASYNC DEF NAME OP_LP [params] OP_RP [PTR_OP expression ] OP_COLON [func_type_comment] block
+---
+func_type_comment:
+NEWLINE TYPE_COMMENT &(NEWLINE INDENT)   # Must be followed by indented block
+TYPE_COMMENT
+---
+params:
+parameters
+---
+parameters:
+slash_no_default param_no_default* param_with_default* [star_etc]
+slash_with_default param_with_default* [star_etc]
+param_no_default+ param_with_default* [star_etc]
+param_with_default+ [star_etc]
+star_etc
+---
+slash_no_default:
+param_no_default+ OP_DIVIDE OP_COMMA
+param_no_default+ OP_DIVIDE &OP_RP
+---
+slash_with_default:
+param_no_default* param_with_default+ OP_DIVIDE OP_COMMA
+param_no_default* param_with_default+ OP_DIVIDE &OP_RP
+---
+star_etc:
+OP_STAR param_no_default param_maybe_default* [kwds]
+OP_STAR OP_COMMA param_maybe_default+ [kwds]
+kwds
+---
+kwds:
+'**' param_no_default
+---
+param_no_default:
+param OP_COMMA TYPE_COMMENT?
+param TYPE_COMMENT? &OP_RP
+---
+param_with_default:
+param default OP_COMMA TYPE_COMMENT?
+param default TYPE_COMMENT? &OP_RP
+---
+param_maybe_default:
+param default? OP_COMMA TYPE_COMMENT?
+param default? TYPE_COMMENT? &OP_RP
+---
+param:
+NAME annotation?
+---
+annotation:
+OP_COLON expression
+---
+default:
+OP_EQUAL expression
+---
+decorators:
+('@' named_expression NEWLINE )+
+---
+class_def:
+decorators class_def_raw
+class_def_raw
+---
+class_def_raw:
+CLASS NAME [OP_LP [arguments] OP_RP ] OP_COLON block
+---
+block:
+NEWLINE INDENT statements DEDENT
+simple_stmts
+---
+star_expressions:
+star_expression (OP_COMMA star_expression )+ [OP_COMMA]
+star_expression OP_COMMA
+star_expression
+---
+star_expression:
+OP_STAR bitwise_or
+expression
+---
+star_named_expressions:
+OP_COMMA.star_named_expression+ [OP_COMMA]
+---
+star_named_expression:
+OP_STAR bitwise_or
+named_expression
+---
+assignment_expression:
+NAME ':=' ~ expression
+---
+named_expression:
+assignment_expression
+expression !':='
+---
+annotated_rhs:
+yield_expr | star_expressions
+---
+expressions:
+expression (OP_COMMA expression )+ [OP_COMMA]
+expression OP_COMMA
+expression
+---
+expression:
+disjunction IF disjunction ELSE expression
+disjunction
+lambdef
+---
+lambdef:
+'lambda' [lambda_params] OP_COLON expression
+---
+lambda_params:
+lambda_parameters
+---
+lambda_parameters:
+lambda_slash_no_default lambda_param_no_default* lambda_param_with_default* [lambda_star_etc]
+lambda_slash_with_default lambda_param_with_default* [lambda_star_etc]
+lambda_param_no_default+ lambda_param_with_default* [lambda_star_etc]
+lambda_param_with_default+ [lambda_star_etc]
+lambda_star_etc
+---
+lambda_slash_no_default:
+lambda_param_no_default+ OP_DIVIDE OP_COMMA
+lambda_param_no_default+ OP_DIVIDE &OP_COLON
+---
+lambda_slash_with_default:
+lambda_param_no_default* lambda_param_with_default+ OP_DIVIDE OP_COMMA
+lambda_param_no_default* lambda_param_with_default+ OP_DIVIDE &OP_COLON
+---
+lambda_star_etc:
+OP_STAR lambda_param_no_default lambda_param_maybe_default* [lambda_kwds]
+OP_STAR OP_COMMA lambda_param_maybe_default+ [lambda_kwds]
+lambda_kwds
+---
+lambda_kwds:
+'**' lambda_param_no_default
+---
+lambda_param_no_default:
+lambda_param OP_COMMA
+lambda_param &OP_COLON
+---
+lambda_param_with_default:
+lambda_param default OP_COMMA
+lambda_param default &OP_COLON
+---
+lambda_param_maybe_default:
+lambda_param default? OP_COMMA
+lambda_param default? &OP_COLON
+---
+lambda_param:
+NAME
+---
+disjunction:
+conjunction ('or' conjunction )+
+conjunction
+---
+conjunction:
+inversion ('and' inversion )+
+inversion
+---
+inversion:
+'not' inversion
+comparison
+---
+comparison:
+bitwise_or compare_op_bitwise_or_pair+
+bitwise_or
+---
+compare_op_bitwise_or_pair:
+eq_bitwise_or
+noteq_bitwise_or
+lte_bitwise_or
+lt_bitwise_or
+gte_bitwise_or
+gt_bitwise_or
+notin_bitwise_or
+in_bitwise_or
+isnot_bitwise_or
+is_bitwise_or
+---
+eq_bitwise_or:
+EQ_OP bitwise_or
+---
+noteq_bitwise_or:
+(NE_OP ) bitwise_or
+---
+lte_bitwise_or:
+LE_OP bitwise_or
+---
+lt_bitwise_or:
+OP_LESSTHAN bitwise_or
+---
+gte_bitwise_or:
+GE_OP bitwise_or
+---
+gt_bitwise_or:
+OP_GTEATERTHAN bitwise_or
+---
+notin_bitwise_or:
+'not' IN bitwise_or
+---
+in_bitwise_or:
+IN bitwise_or
+---
+isnot_bitwise_or:
+'is' 'not' bitwise_or
+---
+is_bitwise_or:
+'is' bitwise_or
+---
+bitwise_or:
+bitwise_or OP_BITOR bitwise_xor
+bitwise_xor
+---
+bitwise_xor:
+bitwise_xor OP_XOR bitwise_and
+bitwise_and
+---
+bitwise_and:
+bitwise_and OP_BITAND shift_expr
+shift_expr
+---
+shift_expr:
+shift_expr LEFT_OP sum
+shift_expr RIGHT_OP sum
+sum
+---
+sum:
+sum OP_ADD term
+sum OP_SUB term
+term
+---
+term:
+term OP_STAR factor
+term OP_DIVIDE factor
+term '//' factor
+term OP_MOD factor
+term '@' factor
+factor
+---
+factor:
+OP_ADD factor
+OP_SUB factor
+OP_BITNOT factor
+power
+---
+power:
+await_primary '**' factor
+await_primary
+await_primary:
+AWAIT primary
+primary
+primary:
+primary OP_DOT NAME
+primary genexp
+primary OP_LP [arguments] OP_RP
+primary OP_LBRACKET slices OP_RBRACKET
+atom
+---
+slices:
+slice !OP_COMMA
+OP_COMMA.slice+ [OP_COMMA]
+---
+slice:
+[expression] OP_COLON [expression] [OP_COLON [expression] ]
+named_expression
+---
+atom:
+NAME
+TRUE
+FALSE
+NONE
+strings
+NUMBER
+(tuple | group | genexp)
+(list | listcomp)
+(dict | set | dictcomp | setcomp)
+ELLIPSIS
+---
+strings:
+STRING+
+---
+list:
+OP_LBRACKET [star_named_expressions] OP_RBRACKET
+---
+listcomp:
+OP_LBRACKET named_expression for_if_clauses OP_RBRACKET
+---
+tuple:
+OP_LP [star_named_expression OP_COMMA [star_named_expressions]  ] OP_RP
+---
+group:
+OP_LP (yield_expr | named_expression) OP_RP
+---
+genexp:
+OP_LP ( assignment_expression | expression !':=') for_if_clauses OP_RP
+---
+set:
+OP_LBRACE star_named_expressions OP_RBRACE
+---
+setcomp:
+OP_LBRACE named_expression for_if_clauses OP_RBRACE
+---
+dict:
+OP_LBRACE [double_starred_kvpairs] OP_RBRACE
+---
+dictcomp:
+OP_LBRACE kvpair for_if_clauses OP_RBRACE
+---
+double_starred_kvpairs:
+OP_COMMA.double_starred_kvpair+ [OP_COMMA]
+---
+double_starred_kvpair:
+'**' bitwise_or
+kvpair
+---
+kvpair:
+expression OP_COLON expression
+---
+for_if_clauses:
+for_if_clause+
+---
+for_if_clause:
+ASYNC FOR star_targets IN ~ disjunction (IF disjunction )*
+FOR star_targets IN ~ disjunction (IF disjunction )*
+---
+yield_expr:
+YIELD FROM expression
+YIELD [star_expressions]
+---
+arguments:
+args [OP_COMMA] &OP_RP
+---
+args:
+OP_COMMA.(starred_expression | ( assignment_expression | expression !':=') !OP_EQUAL)+ [OP_COMMA kwargs ]kwargs
+---
+kwargs:
+OP_COMMA.kwarg_or_starred+ OP_COMMA OP_COMMA.kwarg_or_double_starred+
+OP_COMMA.kwarg_or_starred+
+OP_COMMA.kwarg_or_double_starred+
+---
+starred_expression:
+OP_STAR expression
+---
+kwarg_or_starred:
+NAME OP_EQUAL expression
+starred_expression
+---
+kwarg_or_double_starred:
+NAME OP_EQUAL expression
+'**' expression
+---
+star_targets:
+star_target !OP_COMMA
+star_target (OP_COMMA star_target )* [OP_COMMA]
+---
+star_targets_list_seq:
+OP_COMMA.star_target+ [OP_COMMA]
+---
+star_targets_tuple_seq:
+star_target (OP_COMMA star_target )+ [OP_COMMA]
+star_target OP_COMMA
+---
+star_target:
+OP_STAR (!OP_STAR star_target)
+target_with_star_atom
+---
+target_with_star_atom:
+t_primary OP_DOT NAME !t_lookahead
+t_primary OP_LBRACKET slices OP_RBRACKET !t_lookahead
+star_atom
+---
+star_atom:
+NAME
+OP_LP target_with_star_atom OP_RP
+OP_LP [star_targets_tuple_seq] OP_RP
+OP_LBRACKET [star_targets_list_seq] OP_RBRACKET
+---
+single_target:
+single_subscript_attribute_target
+NAME
+OP_LP single_target OP_RP
+single_subscript_attribute_target:
+t_primary OP_DOT NAME !t_lookahead
+t_primary OP_LBRACKET slices OP_RBRACKET !t_lookahead
+---
+del_targets:
+OP_COMMA.del_target+ [OP_COMMA]
+---
+del_target:
+t_primary OP_DOT NAME !t_lookahead
+t_primary OP_LBRACKET slices OP_RBRACKET !t_lookahead
+del_t_atom
+---
+del_t_atom:
+NAME
+OP_LP del_target OP_RP
+OP_LP [del_targets] OP_RP
+OP_LBRACKET [del_targets] OP_RBRACKET
+---
+t_primary:
+t_primary OP_DOT NAME &t_lookahead
+t_primary OP_LBRACKET slices OP_RBRACKET &t_lookahead
+t_primary genexp &t_lookahead
+t_primary OP_LP [arguments] OP_RP &t_lookahead
+atom &t_lookahead
+---
+t_lookahead:
+OP_LP | OP_LBRACKET | OP_DOT

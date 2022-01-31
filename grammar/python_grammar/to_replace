@@ -32,7 +32,7 @@
 'do'  DO
 'double'  DOUBLE
 'else'  ELSE
-'enum'  ENUM
+'enum'	ENUM
 'extern'  EXTERN
 'float'  FLOAT
 'for'  FOR
@@ -78,3 +78,13 @@
 '!='  NE_OP
 '#include'  SHARP_AND_INCLUDE
 '>\n'  OP_GREATERTHAN_NEWLINE
+'None'	NONE
+'True'	TRUE
+'False'	FALSE
+'def'	DEF
+'class'	CLASS
+'pass'	PASS
+'in'	IN
+'yield'	YIELD
+'from'	FROM
+'\n'	NEWLINE
